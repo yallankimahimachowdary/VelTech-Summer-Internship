@@ -1,23 +1,36 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { sendChatMessage } from '../api'
+import awbotLogo from '../assets/awbot.png'
 
 function Chat() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const messagesEndRef = useRef(null)
 
-  const sendMessage = () => {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  const sendMessage = async () => {
     if (input.trim() === '') return
     const userMessage = { role: 'user', text: input }
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setLoading(true)
-    setTimeout(() => {
+    try {
+      const data = await sendChatMessage(input)
       setMessages(prev => [...prev, {
         role: 'bot',
-        text: 'I am Ailwing Bot how may I help you?'
+        text: data.response || 'Sorry, I could not get a response.'
       }])
-      setLoading(false)
-    }, 1500)
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'bot',
+        text: 'Something went wrong. Please try again.'
+      }])
+    }
+    setLoading(false)
   }
 
   const handleKeyDown = (e) => {
@@ -31,53 +44,79 @@ function Chat() {
   }
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: '#f1f5f9', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Top navbar */}
+      {/* Navbar */}
       <div style={{
-        background: 'white', padding: '0 24px',
-        display: 'flex', alignItems: 'center',
+        background: 'white',
+        paddingLeft: '24px',
+        paddingRight: '24px',
+        display: 'flex',
+        alignItems: 'center',
         borderBottom: '1px solid #e2e8f0',
-        height: '56px', gap: '24px'
+        height: '52px',
+        gap: '16px',
+        overflow: 'hidden',   /* prevents child stretch from blowing out the bar */
       }}>
-        <span style={{ color: '#64748b', fontSize: '14px' }}>AilWingKB</span>
+        <span style={{ color: '#1e293b', fontSize: '14px', fontFamily: 'Inter, sans-serif', fontWeight: '600' }}>AilWingKB</span>
+
+        {/* ── Rectangle 4677 ── 2 px wide, full navbar height, #F2F3F5 */}
+        <div style={{
+          width: '2px',
+          alignSelf: 'stretch',   /* stretches to the navbar's 52 px */
+          background: '#F2F3F5',
+          flexShrink: 0,
+        }} />
+
         <span style={{
-          color: '#0d9488', fontSize: '14px', fontWeight: '600',
+          color: '#1e293b', fontSize: '14px', fontWeight: '500',
           borderBottom: '2px solid #0d9488',
-          paddingBottom: '16px', marginBottom: '-1px'
+          paddingBottom: '14px', marginBottom: '-1px',
+          fontFamily: 'Inter, sans-serif'
         }}>Chat With AI</span>
+
         <div style={{ flex: 1 }} />
-        {messages.length > 0 && (
-          <button
-            onClick={restart}
-            style={{
-              background: 'none', border: 'none',
-              color: '#ef4444', cursor: 'pointer',
-              fontSize: '14px', fontWeight: '500'
-            }}
-          >Restart</button>
-        )}
+
+        {/* Bell icon */}
+        <svg width="22" height="22" viewBox="1660 24 26 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1673 32.44V35.77M1673.02 28C1669.34 28 1666.36 30.98 1666.36 34.66V36.76C1666.36 37.44 1666.08 38.46 1665.73 39.04L1664.46 41.16C1663.68 42.47 1664.22 43.93 1665.66 44.41C1670.44 46 1675.61 46 1680.39 44.41C1680.71 44.3048 1680.99 44.13 1681.23 43.8986C1681.47 43.6671 1681.65 43.385 1681.77 43.073C1681.89 42.761 1681.93 42.4271 1681.9 42.096C1681.87 41.7649 1681.76 41.445 1681.59 41.16L1680.32 39.04C1679.97 38.46 1679.69 37.43 1679.69 36.76V34.66C1679.68 31 1676.68 28 1673.02 28Z" stroke="#64748b" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round"/>
+          <path d="M1676.33 44.8199C1676.33 46.6499 1674.83 48.1499 1673 48.1499C1672.09 48.1499 1671.25 47.7699 1670.65 47.1699C1670.05 46.5699 1669.67 45.7299 1669.67 44.8199" stroke="#64748b" strokeWidth="1.5" strokeMiterlimit="10"/>
+        </svg>
+
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '8px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#94a3b8"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        </div>
       </div>
 
       {/* Breadcrumb */}
-      <div style={{ padding: '12px 24px', fontSize: '13px', color: '#94a3b8' }}>
-        Home &gt; <span style={{ color: '#1e293b' }}>Chat With AI</span>
+      <div style={{
+        padding: '10px 24px', fontSize: '12px', color: '#94a3b8',
+        fontFamily: 'Inter, sans-serif', display: 'flex',
+        alignItems: 'center', justifyContent: 'space-between',
+        background: 'white', borderBottom: '1px solid #f1f5f9'
+      }}>
+        <span>
+          <span style={{ color: '#94a3b8', fontWeight: 400 }}>Home</span>
+          <span style={{ margin: '0 4px' }}>›</span>
+          <span style={{ color: '#1e293b', fontWeight: 700 }}>Chat With AI</span>
+        </span>
+        {messages.length > 0 && (
+          <button onClick={restart} style={{
+            background: 'none', border: 'none',
+            color: '#ef4444', cursor: 'pointer',
+            fontSize: '13px', fontWeight: '500',
+            fontFamily: 'Inter, sans-serif'
+          }}>Restart</button>
+        )}
       </div>
 
       {/* Chat area */}
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        margin: '0 24px 24px',
-        background: 'white', borderRadius: '12px',
-        border: '1px solid #e2e8f0', overflow: 'hidden'
-      }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
 
-        {/* Messages */}
         <div style={{
           flex: 1, overflowY: 'auto',
-          padding: '24px', display: 'flex',
-          flexDirection: 'column', gap: '16px',
-          minHeight: '400px'
+          padding: '32px 80px',
+          display: 'flex', flexDirection: 'column', gap: '20px',
         }}>
 
           {/* Welcome state */}
@@ -85,18 +124,20 @@ function Chat() {
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              textAlign: 'center', paddingTop: '80px'
+              textAlign: 'center', paddingTop: '120px', gap: '12px'
             }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0d9488, #34d399)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '28px', marginBottom: '16px'
-              }}>🤖</div>
-              <h2 style={{ color: '#1e293b', fontSize: '20px', marginBottom: '8px' }}>
+              <img
+                src={awbotLogo}
+                alt="AwBot"
+                style={{ width: '76px', height: '76px', flexShrink: 0, display: 'block' }}
+              />
+              <h2 style={{
+                color: '#1e293b', fontSize: '22px', fontWeight: '600',
+                margin: 0, fontFamily: 'Inter, sans-serif'
+              }}>
                 Welcome to AwBot
               </h2>
-              <p style={{ color: '#94a3b8', fontSize: '14px' }}>
+              <p style={{ color: '#0f172a', fontSize: '14px', fontFamily: 'Inter, sans-serif', margin: 0 }}>
                 Start by scripting a task, and let the chat take over.
               </p>
             </div>
@@ -107,77 +148,80 @@ function Chat() {
             <div key={i} style={{
               display: 'flex',
               justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              alignItems: 'flex-start', gap: '10px'
             }}>
-              {msg.role === 'bot' && (
+              {msg.role === 'user' ? (
                 <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #0d9488, #34d399)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '14px', flexShrink: 0
-                }}>🤖</div>
+                  maxWidth: '55%', padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'white',
+                  border: '1px solid #e2e8f0',
+                  color: '#1e293b', fontSize: '14px',
+                  lineHeight: '1.5', fontFamily: 'Inter, sans-serif'
+                }}>
+                  {msg.text}
+                </div>
+              ) : (
+                <div style={{
+                  maxWidth: '65%',
+                  color: '#1e293b', fontSize: '14px',
+                  lineHeight: '1.5', fontFamily: 'Inter, sans-serif',
+                  padding: '4px 0'
+                }}>
+                  {msg.text}
+                </div>
               )}
-              <div style={{
-                maxWidth: '60%', padding: '10px 14px',
-                borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-                background: msg.role === 'user' ? '#f1f5f9' : '#f1f5f9',
-                color: '#1e293b', fontSize: '14px', lineHeight: '1.5'
-              }}>
-                {msg.text}
-              </div>
             </div>
           ))}
 
-          {/* Loading */}
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0d9488, #34d399)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '14px'
-              }}>🤖</div>
-              <div style={{
-                background: '#f1f5f9', padding: '10px 14px',
-                borderRadius: '12px 12px 12px 4px',
-                color: '#94a3b8', fontSize: '14px'
-              }}>Thinking...</div>
+            <div style={{ color: '#94a3b8', fontSize: '14px', fontFamily: 'Inter, sans-serif' }}>
+              Thinking...
             </div>
           )}
+
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input area */}
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid #e2e8f0',
-          display: 'flex', alignItems: 'center', gap: '12px',
-          background: 'white'
-        }}>
-          <input
-            type="text"
-            placeholder="Write your message ..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            style={{
-              flex: 1, padding: '12px 16px',
-              borderRadius: '8px', border: '1px solid #e2e8f0',
-              background: '#f8fafc', color: '#1e293b',
-              fontSize: '14px', outline: 'none'
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={input.trim() === ''}
-            style={{
-              width: '40px', height: '40px',
-              borderRadius: '8px', border: 'none',
-              background: input.trim() === '' ? '#e2e8f0' : '#0d9488',
-              color: 'white', cursor: input.trim() === '' ? 'not-allowed' : 'pointer',
-              fontSize: '18px', display: 'flex',
-              alignItems: 'center', justifyContent: 'center'
-            }}
-          >↑</button>
+        <div style={{ padding: '16px 80px 32px' }}>
+          <div style={{
+            background: 'white', border: '1px solid #e2e8f0',
+            borderRadius: '16px', padding: '16px 16px 12px',
+            display: 'flex', flexDirection: 'column', gap: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+          }}>
+            <input
+              type="text"
+              placeholder="Write your message ..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              style={{
+                border: 'none', outline: 'none',
+                background: 'transparent',
+                color: '#1e293b', fontSize: '14px',
+                fontFamily: 'Inter, sans-serif', width: '100%'
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={sendMessage}
+                disabled={input.trim() === '' || loading}
+                style={{
+                  width: '36px', height: '36px',
+                  borderRadius: '10px', border: 'none',
+                  background: input.trim() === '' || loading ? '#e2e8f0' : '#0d9488',
+                  color: 'white',
+                  cursor: input.trim() === '' || loading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
